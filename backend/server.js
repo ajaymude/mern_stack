@@ -1,118 +1,75 @@
-// const express = require("express"); 
-// const mongoose = require("mongoose");
-// const app = express();
-
-// app.use(express.json());
-// app.use(express.urlencoded({ extended: false }));
-
-// mongoose.connect('mongodb://localhost:27017/user12')
-//     .then(() => console.log('db is connected'))
-//     .catch(err => console.log(err));
-
-// const userSchema = new mongoose.Schema({
-//     name: { type: String, unique: true }
-// });
-
-// const userModel = mongoose.model('user', userSchema);
-
-// //userModel.createIndexes(); // Ensure indexes are created
-
-// app.get('/', async (req, res) => {
-//     const { name } = req.body;
-//     try {
-//         const savedUser = await userModel.find();
-//         console.log('saved user', savedUser);
-//         res.status(200).send(savedUser);
-//     } catch (error) {
-//         if (error.code === 11000) { 
-//             res.status(400).send({ message: 'Name already exists' });
-//         } else {
-//             res.status(500).send(error);
-//         }
-//     }
-// });
-
-// app.post('/', async (req, res) => {
-//     const { name } = req.body;
-
-//     try {
-//         const isExisted = userModel.findOne({name})
-//         if(isExisted){
-//            return res.send('user is existed')
-//         } 
-//         const savedUser = await userModel.create({ name });
-//         console.log('saved user', savedUser);
-//         return  res.status(200).send(savedUser);
-//     } catch (error) {
-//         if (error.code === 11000) { 
-//             res.status(400).send({ message: 'Name already exists' });
-//         } else {
-//             res.status(500).send(error);
-//         }
-//     }
-// });
-
-// app.put('/', async (req, res) => {
-//     const { name } = req.body;
-//     try {
-//         const savedUser = await userModel.findOne({ name}, { name:"rano" }, { new: true, runValidators: true });
-//         console.log('saved user', savedUser);
-//         res.status(200).send(savedUser);
-//     } catch (error) {
-//         if (error.code === 11000) { 
-//             res.status(400).send({ message: 'Name already exists' });
-//         } else {
-//             res.status(500).send(error);
-//         }
-//     }
-// });
-
-// app.delete('/', async (req, res) => {
-//     const { name } = req.body;
-//     try {
-//         const savedUser = await userModel.findOneAndDelete({ name}, { name:"rano" }, { new: true, runValidators: true });
-//         console.log('saved user', savedUser);
-//         res.status(200).send(savedUser);
-//     } catch (error) {
-//         if (error.code === 11000) { 
-//             res.status(400).send({ message: 'Name already exists' });
-//         } else {
-//             res.status(500).send(error);
-//         }
-//     }
-// });
-
-
-
-
-// app.listen(8000, () => console.log('server is running on port 8000'));
-
-
-
-const express = require('express');
-const { body, validationResult } = require('express-validator');
+const express = require("express");
+const mongoose = require("mongoose");
+const morgan = require("morgan");
 
 const app = express();
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(morgan("dev"));
 
-app.post('/user', [
-  // Validation rules
-  body('username').isLength({ min: 5 }).withMessage('Username must be at least 5 characters long'),
-  body('email').isEmail().withMessage('Please provide a valid email address'),
-  body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters long')
-], (req, res) => {
-  // Check for validation errors
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+mongoose.connect('mongodb://localhost:27017/user12', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+
+const schema1 = new mongoose.Schema({
+  firstName: {
+    type: String,
+    unique: true,
+  },
+  id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "model2", // Reference to model2
+  },
+});
+
+const model1 = mongoose.model("model1", schema1);
+
+const schema2 = new mongoose.Schema({
+  lastName: {
+    type: String,
+    unique: true,
+    required: true, 
+  },
+});
+
+const model2 = mongoose.model("model2", schema2);
+
+app.get("/", async (req, res) => {
+  try {
+    // Populate the 'id' field which references 'model2'
+    const usrfl = await model1.find().populate("id");
+    console.log(usrfl);
+    res.status(200).json(usrfl); // Send the retrieved data as JSON
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ error: "An error occurred while fetching the data" });
   }
-  
-  // If no errors, proceed with user creation  test again 
-  
-  res.send('User created successfully!');
 });
 
-app.listen(8000, () => {
-  console.log('Server is running on port 8000');
+app.post("/user1", async (req, res) => {
+  try {
+    const { firstName, lastName } = req.body;
+    console.log("firstName:", firstName);
+    console.log("lastName:", lastName);
+
+    // Create and save the lastName in model2
+    const lastName1 = new model2({ lastName });
+    const savedLastName = await lastName1.save();
+    console.log(savedLastName);
+
+    const { _id } = savedLastName;
+
+    // Create and save the firstName in model1 with a reference to model2
+    const savedFirstName = new model1({ firstName, id: _id });
+    const updatedSavedUser = await savedFirstName.save();
+
+    res.status(200).send({ savedLastName, updatedSavedUser });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ error: "An error occurred while saving the user" });
+  }
 });
+
+app.listen(8000, () => console.log("Server is running on port 8000"));
 
