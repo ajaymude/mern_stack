@@ -2,7 +2,7 @@
 const Btest = () => {
   
   return (
-    <div>Btest</div>
+    <div>Btest this change for the git branch merge tesing functionality </div>
   )
 }
 
