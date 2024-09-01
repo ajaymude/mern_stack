@@ -55,6 +55,7 @@
 // app.put('/', async (req, res) => {
 //     const { name } = req.body;
 //     try {
+// test 2 for the git 
 //         const savedUser = await userModel.findOne({ name}, { name:"rano" }, { new: true, runValidators: true });
 //         console.log('saved user', savedUser);
 //         res.status(200).send(savedUser);
